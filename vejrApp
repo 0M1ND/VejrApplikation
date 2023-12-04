@@ -2,6 +2,7 @@ import requests
 import pygame
 from math import radians, sin, cos
 from pygame.locals import *
+from io import BytesIO
 
 # Vindretning og cirkelposition
 wind = None
@@ -24,14 +25,20 @@ pygame.display.set_caption('Vindsimulator')
 # Font til tekst i vinduet
 font = pygame.font.SysFont("Arial", 36)
 
+global icon
 def setup():
-    global wind, position, angle, windmag, json
+    global wind, position, angle, windmag, json, icon
 
     # Aflæs data fra api.weatherstack.com for den givne by
     url = f"http://api.weatherstack.com/current?access_key=cbde3b9484c7977188ba5fcb72d40eb3&query={city}"
     response = requests.get(url)
     print(response.json())
     json = response.json()['current']
+
+    #Her siger jeg at den skal bruge bilede den selv har så den bare tag iconet. Jeg prøvet at sætte den i setup men den begyndte at lagge pga frame så jeg satte den længere op.
+    condition_icon_url = json['weather_icons'][0]
+    image_response = requests.get(condition_icon_url)
+    icon = pygame.image.load(BytesIO(image_response.content))
     
     # Initialiser cirklen i midten af vinduet
     position = [width / 2, height / 2]
@@ -49,11 +56,13 @@ def calc_weather(json_data):
     windmag = float(json_data['wind_speed']) / 3.6
 
     # Lav en vektor ud fra vinklen
-    wind = [round(-windmag * cos(angle)), round(windmag * sin(angle))]
+    wind =  [ 0.1* round(-windmag * cos(angle)), 0.1* round(windmag * sin(angle))]
+
 
 def draw():
-    global position 
-    
+    global position  
+
+
 
     # Tegn cirklen og vindretningen
     screen.fill((200, 200, 200))
@@ -78,9 +87,18 @@ def draw():
     text_surface = font.render(text, True, (0, 0, 0))
     screen.blit(text_surface, (10, 50))
 
+    #Den her del af coden viser temperturen i grader af celsius, Som var en del at opgaven
+    temp_text = f"Temperatur: {json['temperature']}°C"
+    temp_surface = font.render(temp_text, True, (0, 0, 0))
+    screen.blit(temp_surface, (10, 100))
+
+    if not icon == None:
+        screen.blit(icon, (10, 150))
+
     pygame.display.update()
 
 setup()
+
 
 running = True
 while running:
